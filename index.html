@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RealSky Transits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #f0f0eb;
+      --card:      #ffffff;
+      --border:    #d0d0c8;
+      --row-rule:  #ebebe6;
+      --text:      #111111;
+      --muted:     #9a9a94;
+      --accent:    #444444;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: 'Space Mono', 'Courier New', monospace;
+      color: var(--text);
+      padding: 2rem 1.5rem 4rem;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .wrapper {
+      max-width: 960px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ── CARD ─────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 1.75rem 2rem 1.5rem;
+    }
+
+    /* ── CARD HEADER ──────────────────────────────────── */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .card-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── TWO-COLUMN TABLE LAYOUT ──────────────────────── */
+    .tables-grid {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      column-gap: 2.5rem;
+      min-width: 0;
+    }
+
+    .col-divider {
+      background: var(--border);
+      width: 1px;
+    }
+
+    /* ── TABLE HEAD ───────────────────────────────────── */
+    .table-head {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      padding-bottom: 0.55rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+
+    .th {
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .th:last-child { text-align: right; }
+
+    /* ── PLANET ROW ───────────────────────────────────── */
+    .planet-row {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid var(--row-rule);
+      align-items: baseline;
+    }
+    .planet-row:last-child { border-bottom: none; }
+
+    .p-name {
+      font-size: 1rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .p-rx {
+      font-size: 0.58rem;
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 0.22em;
+      vertical-align: super;
+      letter-spacing: 0;
+    }
+
+    .p-sign {
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .p-deg {
+      font-size: 1rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── CARD FOOTER ──────────────────────────────────── */
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.25rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--row-rule);
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.07em;
+    }
+
+    /* ── TIME TRAVEL FORM ─────────────────────────────── */
+    .tt-form {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .form-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .form-input {
+      font-family: inherit;
+      font-size: 0.78rem;
+      padding: 0.48rem 0.6rem;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      letter-spacing: 0.02em;
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .form-input:focus { border-color: #888; }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-calc {
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.4rem;
+      background: var(--text);
+      color: var(--card);
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-calc:hover { opacity: 0.75; }
+
+    .btn-clear {
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.55rem 1.1rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-clear:hover { color: var(--text); border-color: #888; }
+
+    /* ── TIME TRAVEL RESULT ───────────────────────────── */
+    .tt-result {
+      margin-top: 1.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .tt-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 1.4rem;
+    }
+
+    .tt-result-tag {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    /* ── SECTION DIVIDER INSIDE TIME TRAVEL ──────────── */
+    .inline-divider {
+      height: 1px;
+      background: var(--row-rule);
+      margin: 1.5rem 0;
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────── */
+    @media (max-width: 700px) {
+      .card { padding: 1.25rem 1.1rem; }
+      .tables-grid {
+        grid-template-columns: 1fr;
+        row-gap: 1.5rem;
+      }
+      .col-divider { display: none; }
+      .tt-form { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 440px) {
+      .tt-form { grid-template-columns: 1fr; }
+      .table-head,
+      .planet-row { grid-template-columns: 120px 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ── CURRENT TRANSITS ─────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Current Transits</div>
+      <div class="card-meta" id="currentTime">—</div>
+    </div>
+
+    <div class="tables-grid">
+      <div>
+        <div class="table-head">
+          <span class="th">Planet</span>
+          <span class="th">Constellation</span>
+          <span class="th">Degree</span>
+        </div>
+        <div id="leftCol"></div>
+      </div>
+
+      <div class="col-divider"></div>
+
+      <div>
+        <div class="table-head">
+          <span class="th">Planet</span>
+          <span class="th">Constellation</span>
+          <span class="th">Degree</span>
+        </div>
+        <div id="rightCol"></div>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span>IAU real-sky &middot; geocentric</span>
+      <span id="refreshTimer">—</span>
+    </div>
+  </div>
+
+  <!-- ── TIME TRAVEL ──────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Time Travel</div>
+      <div class="card-meta">enter any date, time &amp; place</div>
+    </div>
+
+    <div class="tt-form">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="ttDate" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Time</label>
+        <input type="time" id="ttTime" class="form-input" value="12:00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Timezone</label>
+        <select id="ttTimezone" class="form-input"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location (optional)</label>
+        <input type="text" id="ttLocation" class="form-input" placeholder="city or lat, lon">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-calc" onclick="calculateTimeTravel()">Calculate</button>
+      <button class="btn-clear" id="btnClear" onclick="clearTimeTravel()" style="display:none">Clear</button>
+    </div>
+
+    <div id="ttResult" class="tt-result" style="display:none">
+      <div class="tt-result-header">
+        <div class="card-title" id="ttResultTitle">—</div>
+        <div class="tt-result-tag">time travel</div>
+      </div>
+
+      <div class="tables-grid">
+        <div>
+          <div class="table-head">
+            <span class="th">Planet</span>
+            <span class="th">Constellation</span>
+            <span class="th">Degree</span>
+          </div>
+          <div id="ttLeftCol"></div>
+        </div>
+        <div class="col-divider"></div>
+        <div>
+          <div class="table-head">
+            <span class="th">Planet</span>
+            <span class="th">Constellation</span>
+            <span class="th">Degree</span>
+          </div>
+          <div id="ttRightCol"></div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span>IAU real-sky &middot; geocentric</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  PLANET DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════
+
+// IAU Real-Sky zodiacal constellation boundaries (ecliptic longitude, J2000.0)
+// 13 constellations — unequal widths, includes Ophiuchus.
+// Source: Delporte (1930) IAU boundaries projected onto the ecliptic.
+const IAU_ZODIACAL = [
+  { name: 'Pisces',      start: 351.65 },  // wraps: also covers 0° – 28.68°
+  { name: 'Aries',       start:  28.68 },
+  { name: 'Taurus',      start:  53.43 },
+  { name: 'Gemini',      start:  90.43 },
+  { name: 'Cancer',      start: 118.23 },
+  { name: 'Leo',         start: 138.08 },
+  { name: 'Virgo',       start: 174.23 },
+  { name: 'Libra',       start: 217.83 },
+  { name: 'Scorpius',    start: 241.05 },
+  { name: 'Ophiuchus',   start: 247.68 },
+  { name: 'Sagittarius', start: 266.28 },
+  { name: 'Capricornus', start: 299.73 },
+  { name: 'Aquarius',    start: 327.48 },
+  // Pisces resumes at 351.65°
+];
+
+const LEFT_PLANETS = [
+  { id: 'Sun',     name: 'Sun'              },
+  { id: 'Moon',    name: 'Moon'             },
+  { id: 'Mercury', name: 'Mercury'          },
+  { id: 'Venus',   name: 'Venus'            },
+  { id: 'Mars',    name: 'Mars'             },
+  { id: 'Chiron',  name: 'Chiron'           },
+];
+
+const RIGHT_PLANETS = [
+  { id: 'Jupiter', name: 'Jupiter'          },
+  { id: 'Saturn',  name: 'Saturn'           },
+  { id: 'Uranus',  name: 'Uranus'           },
+  { id: 'Neptune', name: 'Neptune'          },
+  { id: 'Pluto',   name: 'Pluto'            },
+  { id: 'Lilith',  name: 'Black Moon Lilith', short: 'Lilith (BML)' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+//  ASTRONOMICAL CALCULATIONS
+// ═══════════════════════════════════════════════════════════════════
+
+function dateToJD(date) {
+  return date.getTime() / 86400000.0 + 2440587.5;
+}
+
+// Iterative Kepler equation solver
+function solveKepler(M, e) {
+  let E = M;
+  for (let i = 0; i < 200; i++) {
+    const dE = (M - E + e * Math.sin(E)) / (1.0 - e * Math.cos(E));
+    E += dE;
+    if (Math.abs(dE) < 1e-12) break;
+  }
+  return E;
+}
+
+// Chiron — Keplerian orbital solution (JPL elements, epoch J2000)
+function calculateChiron(jd) {
+  const a     = 13.648;                   // semi-major axis (AU)
+  const e     = 0.3831;                   // eccentricity
+  const inc   = 6.931  * Math.PI / 180;  // inclination
+  const Omega = 209.05 * Math.PI / 180;  // longitude of ascending node
+  const omega = 339.53 * Math.PI / 180;  // argument of perihelion
+  const Tp    = 2450127.5;               // perihelion JD (1996-Feb-14)
+  const P     = 50.4   * 365.25;         // orbital period (days)
+
+  const n = (2 * Math.PI) / P;
+  const M = ((n * (jd - Tp)) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const E = solveKepler(M, e);
+
+  const nu = 2 * Math.atan2(
+    Math.sqrt(1 + e) * Math.sin(E / 2),
+    Math.sqrt(1 - e) * Math.cos(E / 2)
+  );
+  const r = a * (1 - e * Math.cos(E));
+  const u = nu + omega;
+
+  // Heliocentric ecliptic rectangular coords
+  const Cx = r * (Math.cos(Omega) * Math.cos(u) - Math.sin(Omega) * Math.sin(u) * Math.cos(inc));
+  const Cy = r * (Math.sin(Omega) * Math.cos(u) + Math.cos(Omega) * Math.sin(u) * Math.cos(inc));
+
+  // Earth's heliocentric position: Sun geocentric lon + 180°, dist ≈ 1 AU
+  const date   = new Date((jd - 2440587.5) * 86400000);
+  const t      = Astronomy.MakeTime(date);
+  const sunLon = Astronomy.Ecliptic(Astronomy.GeoVector('Sun', t, false)).elon;
+  const sunRad = sunLon * Math.PI / 180;
+  const Ex = Math.cos(sunRad + Math.PI);
+  const Ey = Math.sin(sunRad + Math.PI);
+
+  const lon = Math.atan2(Cy - Ey, Cx - Ex) * 180 / Math.PI;
+  return ((lon % 360) + 360) % 360;
+}
+
+// Black Moon Lilith — Mean Lunar Apogee (Meeus formula)
+function calculateLilith(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  let L = 83.3532465
+        + 4069.0137287 * T
+        - 0.0103200   * T * T
+        - (T * T * T) / 80053.0
+        + (T * T * T * T) / 18999000.0;
+  L += 180.0; // perigee → apogee
+  return ((L % 360) + 360) % 360;
+}
+
+function getLongitude(bodyId, date) {
+  const jd = dateToJD(date);
+  if (bodyId === 'Moon')   return Astronomy.EclipticGeoMoon(date).lon;
+  if (bodyId === 'Chiron') return calculateChiron(jd);
+  if (bodyId === 'Lilith') return calculateLilith(jd);
+  // GeoVector+Ecliptic gives geocentric apparent longitude (EclipticLongitude is heliocentric)
+  const t = Astronomy.MakeTime(date);
+  return Astronomy.Ecliptic(Astronomy.GeoVector(bodyId, t, true)).elon;
+}
+
+// Returns true when a planet is moving in reverse ecliptic longitude
+function checkRetrograde(bodyId, date) {
+  if (['Sun', 'Moon', 'Lilith'].includes(bodyId)) return false;
+  const ONE_DAY = 86400000;
+  const lon1 = getLongitude(bodyId, new Date(date.getTime() - ONE_DAY));
+  const lon2 = getLongitude(bodyId, new Date(date.getTime() + ONE_DAY));
+  let d = lon2 - lon1;
+  if (d >  180) d -= 360;
+  if (d < -180) d += 360;
+  return d < 0;
+}
+
+// Return the IAU constellation object for a given ecliptic longitude
+function getIAUConstellation(lon) {
+  const L = ((lon % 360) + 360) % 360;
+  // Walk backwards through the table; Pisces wraps so it covers both
+  // 351.65°–360° and 0°–28.68°. Any L < 28.68 that falls through
+  // the loop (because no entry has start ≤ L except Pisces at 351.65)
+  // is early Pisces (0°–28.68°).
+  for (let i = IAU_ZODIACAL.length - 1; i >= 0; i--) {
+    if (L >= IAU_ZODIACAL[i].start) return IAU_ZODIACAL[i];
+  }
+  return IAU_ZODIACAL[0]; // Pisces (0° – 28.68° segment)
+}
+
+// Degree within the IAU constellation, formatted as  5°12′
+function formatDeg(lon) {
+  const L = ((lon % 360) + 360) % 360;
+  const c = getIAUConstellation(L);
+  // Pisces wraps: if L < 28.68, it is past 360° from the 351.65° start
+  let within = L >= c.start ? L - c.start : L + (360 - c.start);
+  const deg = Math.floor(within);
+  const min = Math.floor((within - deg) * 60);
+  return `${deg}°${String(min).padStart(2, '0')}′`;
+}
+
+// Constellation name only (used by renderRow)
+function getSign(lon) {
+  return getIAUConstellation(lon).name;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════════════════════════════════════
+
+function renderRow(planet, date) {
+  const lon  = getLongitude(planet.id, date);
+  const sign = getSign(lon);
+  const rx   = checkRetrograde(planet.id, date);
+  const deg  = formatDeg(lon);
+  const display = planet.short || planet.name;
+  return `<div class="planet-row">
+    <span class="p-name" title="${planet.name}">${display}${rx ? '<span class="p-rx">Rx</span>' : ''}</span>
+    <span class="p-sign">${sign}</span>
+    <span class="p-deg">${deg}</span>
+  </div>`;
+}
+
+function renderInto(date, leftId, rightId) {
+  document.getElementById(leftId).innerHTML  = LEFT_PLANETS.map(p => renderRow(p, date)).join('');
+  document.getElementById(rightId).innerHTML = RIGHT_PLANETS.map(p => renderRow(p, date)).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CLOCK + AUTO-REFRESH
+// ═══════════════════════════════════════════════════════════════════
+
+const REFRESH_SECS = 5 * 60;
+let countdown = REFRESH_SECS;
+let timerHandle;
+
+function tick() {
+  countdown--;
+  const m = Math.floor(countdown / 60);
+  const s = String(countdown % 60).padStart(2, '0');
+  document.getElementById('refreshTimer').textContent = `refresh in ${m}:${s}`;
+  if (countdown <= 0) {
+    refreshNow();
+  }
+}
+
+function refreshNow() {
+  clearInterval(timerHandle);
+  const now = new Date();
+  const hh  = String(now.getUTCHours()).padStart(2, '0');
+  const mm  = String(now.getUTCMinutes()).padStart(2, '0');
+  document.getElementById('currentTime').textContent = `${hh}:${mm} UTC`;
+  renderInto(now, 'leftCol', 'rightCol');
+  countdown   = REFRESH_SECS;
+  timerHandle = setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TIMEZONE HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+function populateTimezones() {
+  const sel     = document.getElementById('ttTimezone');
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const zones = [
+    'UTC',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Anchorage',
+    'America/Sao_Paulo',
+    'America/Argentina/Buenos_Aires',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Europe/Athens',
+    'Europe/Moscow',
+    'Africa/Cairo',
+    'Asia/Dubai',
+    'Asia/Kolkata',
+    'Asia/Bangkok',
+    'Asia/Shanghai',
+    'Asia/Tokyo',
+    'Asia/Seoul',
+    'Australia/Sydney',
+    'Pacific/Auckland',
+    'Pacific/Honolulu',
+  ];
+
+  if (!zones.includes(localTz)) zones.unshift(localTz);
+
+  zones.forEach(tz => {
+    const opt = document.createElement('option');
+    opt.value = tz;
+    opt.textContent = tz;
+    if (tz === localTz) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// Convert a local date+time string to a UTC Date for a given IANA timezone
+function localToUTC(dateStr, timeStr, tz) {
+  const asUTC = new Date(`${dateStr}T${timeStr}:00Z`);
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(asUTC);
+
+  const f = {};
+  parts.forEach(p => { if (p.type !== 'literal') f[p.type] = p.value; });
+
+  const inTZ = new Date(Date.UTC(
+    +f.year, +f.month - 1, +f.day,
+    +f.hour % 24, +f.minute, +f.second
+  ));
+
+  // offset = asUTC – inTZ  →  result = asUTC + offset
+  return new Date(asUTC.getTime() + (asUTC.getTime() - inTZ.getTime()));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TIME TRAVEL
+// ═══════════════════════════════════════════════════════════════════
+
+async function calculateTimeTravel() {
+  const dateStr = document.getElementById('ttDate').value;
+  const timeStr = document.getElementById('ttTime').value || '12:00';
+  const tz      = document.getElementById('ttTimezone').value;
+  const loc     = document.getElementById('ttLocation').value.trim();
+
+  if (!dateStr) { alert('Please select a date.'); return; }
+
+  let date = localToUTC(dateStr, timeStr, tz);
+
+  // If a location is entered, try geocoding via Nominatim (used for display only)
+  let locLabel = '';
+  if (loc) {
+    try {
+      const res  = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(loc)}`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data.length) locLabel = ` · ${data[0].display_name.split(',')[0]}`;
+    } catch (_) { /* network unavailable — silently skip */ }
+  }
+
+  // Build display label
+  const label = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(date) + ' ' + tz + locLabel;
+
+  document.getElementById('ttResultTitle').textContent = label;
+  renderInto(date, 'ttLeftCol', 'ttRightCol');
+
+  document.getElementById('ttResult').style.display = 'block';
+  document.getElementById('btnClear').style.display = 'inline-block';
+  document.getElementById('ttResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function clearTimeTravel() {
+  document.getElementById('ttResult').style.display = 'none';
+  document.getElementById('btnClear').style.display = 'none';
+}
+
+// Allow pressing Enter in the location field to calculate
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('ttLocation').addEventListener('keydown', e => {
+    if (e.key === 'Enter') calculateTimeTravel();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════
+
+function init() {
+  populateTimezones();
+  document.getElementById('ttDate').value = new Date().toISOString().slice(0, 10);
+  refreshNow();
+}
+
+// astronomy-engine loads synchronously from CDN; guard for any async edge case
+if (typeof Astronomy !== 'undefined') {
+  init();
+} else {
+  window.addEventListener('load', init);
+}
+</script>
+</body>
+</html>
